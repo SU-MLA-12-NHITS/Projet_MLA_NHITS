@@ -1,0 +1,15 @@
+name: nhits
+channels:
+    - conda-forge
+    - pytorch
+dependencies:
+    - matplotlib
+    - jupyterlab
+    - numpy>=1.21.6
+    - pandas>=1.3.5
+    #- pytorch>=2.0.0 # 1.12.0 in the original file on Oct 3, 2022.
+    - pytorch-lightning>=2.0.0 # == 1.6.5
+    - pip:
+        - nbdev
+
+# Inspired by the environment-cpu.yml from github.com/Nixtla/neuralforecast
