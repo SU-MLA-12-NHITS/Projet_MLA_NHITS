@@ -17,6 +17,6 @@ To create and activate the Conda environment, follow these steps:
 
 2. **Activate the environment**:
     ```bash
-    conda activate neural forecast
+    conda activate nhits
 
 To be further developed...
