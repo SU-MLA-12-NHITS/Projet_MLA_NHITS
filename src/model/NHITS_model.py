@@ -4,11 +4,8 @@
 Created on Fri Jan  3 15:19:18 2025
 
 @author: lisadelplanque
-"""
-"""
-Created on Fri Jan 3 15:19:18 2025
 
-@author: lisadelplanque
+This code implements the NHITS model for time series forecasting.
 """
 
 import torch
@@ -27,8 +24,9 @@ class NHITSBlock(nn.Module):
         pooling_kernel_size (int): The size of the kernel used for pooling.
         hidden_size (int): The number of neurons in the hidden layers of the MLP.
         activation (nn.Module): Activation function used in the MLP layers.
+        dropout_rate (float): Dropout rate to apply between MLP layers.
     """
-    def __init__(self, input_size, output_size, pooling_kernel_size, hidden_size, activation=nn.ReLU):
+    def __init__(self, input_size, output_size, pooling_kernel_size, hidden_size, activation=nn.ReLU, dropout_rate=0.2):
         super(NHITSBlock, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -36,11 +34,13 @@ class NHITSBlock(nn.Module):
 
         # Multi-Layer Perceptron (MLP) for feature extraction
         self.mlp = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            activation(),
-            nn.Linear(hidden_size, hidden_size),
-            activation(),
-            nn.Linear(hidden_size, output_size)
+            nn.Linear(input_size, hidden_size),  # First hidden layer
+            activation(),                        # Activation function
+            nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            nn.Linear(hidden_size, hidden_size), # Second hidden layer
+            activation(),                        # Activation function
+            nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            nn.Linear(hidden_size, output_size)  # Output layer
         )
 
         # Optional pooling layer to reduce dimensionality
@@ -59,12 +59,23 @@ class NHITSBlock(nn.Module):
         Returns:
             torch.Tensor: Output tensor after processing through the block.
         """
-        #print(f"Input shape before flattening: {x.shape}")
-        #x = x.view(x.size(0), -1)  # Flatten input 
-        #print(f"Input shape after flattening: {x.shape}")
+        
+        # Extract features using the MLP
         x = self.mlp(x)
-        #print(f"Shape after MLP: {x.shape}")
-        x = self.projection(x)  # Project output to match input size
+
+        # Apply pooling if the kernel size is greater than 1
+        if self.pooling_kernel_size > 1:
+            # Add a channel dimension for the pooling layer to operate
+            x = self.pooling(x.unsqueeze(1)).squeeze(1)
+
+        # Ensure dimensions match for the projection layer
+        input_projection_size = x.shape[1]
+        if input_projection_size != self.projection.in_features:
+            # Redefine projection layer if input size to projection doesn't match
+            self.projection = nn.Linear(input_projection_size, self.projection.out_features)
+        
+        # Apply the projection layer to align the output size with the input size
+        x = self.projection(x)
         return x
 
 
@@ -87,13 +98,14 @@ class NHITS(nn.Module):
     """
     def __init__(self, input_size, output_size, stacks, blocks_per_stack, pooling_kernel_sizes, hidden_size, expressiveness_ratios, activation=nn.ReLU):
         super(NHITS, self).__init__()
-        self.stacks = nn.ModuleList()
+        self.stacks = nn.ModuleList()  # List to hold stacks
         self.output_size = output_size
-        
+
         # Create stacks, each containing multiple blocks
         for stack_idx in range(stacks):
-            stack_blocks = nn.ModuleList()
+            stack_blocks = nn.ModuleList()  # List for blocks in the current stack
             for _ in range(blocks_per_stack):
+                # Create a block for each stack
                 block = NHITSBlock(
                     input_size=input_size,
                     output_size=output_size,
@@ -104,6 +116,7 @@ class NHITS(nn.Module):
                 stack_blocks.append(block)
             self.stacks.append(stack_blocks)
         
+        # Define expressiveness ratios for each stack
         self.expressiveness_ratios = expressiveness_ratios
 
     def forward(self, x):
@@ -118,53 +131,50 @@ class NHITS(nn.Module):
         """
         residual = x.clone()  # Initialize residuals with the input
         outputs = []
-        
+
+        # Loop over each stack and each block within the stack
         for stack_idx, stack_blocks in enumerate(self.stacks):
             for block in stack_blocks:
+                # Get output from the block
                 block_output = block(residual)
                 # Reduce residuals using expressiveness ratios
                 residual = residual - (block_output / self.expressiveness_ratios[stack_idx])
-
-                #residual -= block_output / self.expressiveness_ratios[stack_idx]
                 outputs.append(block_output)
 
         # Combine outputs from all blocks
         final_output = torch.stack(outputs, dim=0).sum(dim=0)
         
-        # Ensure output matches the desired size
+        # Return the final output, ensuring the output size is correct
         return final_output[:, :self.output_size]
 
 
 # --- Testing the Model ---
 
-# Hyperparameters for testing
-input_size = 128
-output_size = 24
-stacks = 3
-blocks_per_stack = 2
-pooling_kernel_sizes = [2, 4, 8]
-hidden_size = 512
-expressiveness_ratios = [168, 24, 1]
+if __name__ == "__main__":
+    # Hyperparameters for testing
+    input_size = 128
+    output_size = 24
+    stacks = 3
+    blocks_per_stack = 2
+    pooling_kernel_sizes = [2, 4, 8]
+    hidden_size = 512
+    expressiveness_ratios = [168, 24, 1]
 
-"""
-batch_size = 32
-epochs = 20
-learning_rate = 1e-3"""
+    # Instantiate the NHITS model with the specified hyperparameters
+    model = NHITS(
+        input_size=input_size,
+        output_size=output_size,
+        stacks=stacks,
+        blocks_per_stack=blocks_per_stack,
+        pooling_kernel_sizes=pooling_kernel_sizes,
+        hidden_size=hidden_size,
+        expressiveness_ratios=expressiveness_ratios
+    )
 
-# Instantiate the NHITS model
-model = NHITS(
-    input_size=input_size,
-    output_size=output_size,
-    stacks=stacks,
-    blocks_per_stack=blocks_per_stack,
-    pooling_kernel_sizes=pooling_kernel_sizes,
-    hidden_size=hidden_size,
-    expressiveness_ratios=expressiveness_ratios
-)
+    # Generate dummy input data (batch_size=32)
+    x = torch.randn(32, input_size)  # Batch of 32 time series samples
+    # Perform a forward pass through the model
+    output = model(x)
 
-# Generate dummy input data
-x = torch.randn(32, input_size)  # Batch of 32 time series samples
-output = model(x)
-
-# Print output shape to verify correctness
-print(output.shape)  # Expected shape: (32, output_size)
+    # Print output shape to verify correctness
+    print(output.shape)  # Expected shape: (32, output_size)
