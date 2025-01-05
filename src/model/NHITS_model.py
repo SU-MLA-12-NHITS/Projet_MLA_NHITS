@@ -25,20 +25,24 @@ class NHITSBlock(nn.Module):
         self.input_size = input_size
         self.output_size = output_size
         self.pooling_kernel_size = pooling_kernel_size
+        
+        # Pooling layer to reduce dimensionality
+        self.pooling = nn.MaxPool1d(kernel_size=pooling_kernel_size, stride=1, padding=0)
+        
+        
+        # Adjusted input size after pooling
+        pooled_size = input_size - pooling_kernel_size + 1
 
         # Multi-Layer Perceptron (MLP) for feature extraction
         self.mlp = nn.Sequential(
-            nn.Linear(input_size, hidden_size),  # First hidden layer
+            nn.Linear(pooled_size, hidden_size),  # First hidden layer
             activation(),                        # Activation function
-            nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            #nn.Dropout(dropout_rate),            # Dropout layer for regularization
             nn.Linear(hidden_size, hidden_size), # Second hidden layer
             activation(),                        # Activation function
-            nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            #nn.Dropout(dropout_rate),            # Dropout layer for regularization
             nn.Linear(hidden_size, output_size)  # Output layer
         )
-
-        # Optional pooling layer to reduce dimensionality
-        self.pooling = nn.MaxPool1d(kernel_size=pooling_kernel_size, stride=1, padding=0)
 
         # Projection layer to align output size with input size
         self.projection = nn.Linear(output_size, input_size)
@@ -54,20 +58,25 @@ class NHITSBlock(nn.Module):
             torch.Tensor: Output tensor after processing through the block.
         """
         
+        # Add a channel dimension for the pooling layer
+        x = x.unsqueeze(1)  # Shape: (batch_size, 1, input_size)
+
+        # Apply pooling
+        x = self.pooling(x).squeeze(1)  # Remove channel dimension after pooling
+        # # Apply pooling if the kernel size is greater than 1
+        # if self.pooling_kernel_size > 1:
+        #     # Add a channel dimension for the pooling layer to operate
+        #     x = self.pooling(x.unsqueeze(1)).squeeze(1)
+
         # Extract features using the MLP
         x = self.mlp(x)
-
-        # Apply pooling if the kernel size is greater than 1
-        if self.pooling_kernel_size > 1:
-            # Add a channel dimension for the pooling layer to operate
-            x = self.pooling(x.unsqueeze(1)).squeeze(1)
 
         # Ensure dimensions match for the projection layer
         input_projection_size = x.shape[1]
         if input_projection_size != self.projection.in_features:
             # Redefine projection layer if input size to projection doesn't match
             self.projection = nn.Linear(input_projection_size, self.projection.out_features)
-        
+
         # Apply the projection layer to align the output size with the input size
         x = self.projection(x)
         return x
