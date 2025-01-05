@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Sat Jan  4 17:43:43 2025
-
-@author: lisadelplanque
-
 Training script.
 """
 
@@ -32,7 +26,7 @@ def train_model(model, train_loader, val_loader, training_steps, criterion, opti
             inputs, targets = inputs.to(device), targets.to(device)
             
             optimizer.zero_grad()
-            outputs = model(inputs)
+            outputs, _ = model(inputs)
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
@@ -45,7 +39,7 @@ def train_model(model, train_loader, val_loader, training_steps, criterion, opti
         with torch.no_grad():
             for inputs, targets in val_loader:
                 inputs, targets = inputs.to(device), targets.to(device)
-                outputs = model(inputs)
+                outputs, _ = model(inputs)
                 loss = criterion(outputs, targets)
                 val_loss += loss.item()
 

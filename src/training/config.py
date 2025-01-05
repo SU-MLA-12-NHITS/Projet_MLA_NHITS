@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Sat Jan  4 17:35:04 2025
-
-@author: lisadelplanque
-
 Configuration file. 
 """
 
@@ -15,8 +9,8 @@ HYPERPARAMETERS = {
     # Dataset : national_illness, possible horizon's values = {24, 36, 48, 60}
     'm': 5,  # Multiplicative factor for input size
     'input_size': 480,  # Input size based on horizon (m * horizon)
-    'output_size': 24,  # Output size
-    'batch_size': 32,  # Batch size for the DataLoader
+    'output_size': 96,  # Output size (horizon)
+    'batch_size': 256,  # Batch size for the DataLoader
     'hidden_size': 512,  # Hidden size for the model
     'stacks': 3,  # Number of stacks in the model
     'blocks_per_stack': 1,  # Number of blocks per stack
@@ -31,7 +25,11 @@ HYPERPARAMETERS = {
 SEED = 42  # Random seed for reproducibility
 
 # --- File Paths ---
-DATASET_PATH = "data/all_six_dataset/ETTm2.csv"  # Path to the dataset
+# DATASET_PATH = "data/all_six_dataset/ETTm2.csv"  # Path to the dataset
+DATASET_PATH = "data/all_six_dataset/ETT-small/ETTm2.csv"
+# DATASET_PATH = "data/all_six_dataset/exchange_rate/exchange_rate.csv"
+# DATASET_PATH = "data/all_six_dataset/weather/weather.csv"
+# DATASET_PATH = "data/all_six_dataset/electricity/electricity.csv"
 
 # --- Model Configuration ---
 MODEL_CONFIG = {

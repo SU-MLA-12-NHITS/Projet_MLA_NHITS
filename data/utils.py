@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Wed Jan  1 12:59:37 2025
-
-@author: lisadelplanque
-
 Time series analysis from a dataset.
 """
 
@@ -177,4 +171,32 @@ def plot_rolling_window(data, input_size, output_size, start_index=0):
     plt.ylabel("Values")
     plt.legend()
     plt.grid()
+    plt.show()
+
+
+def plot_stack_outputs(stack_outputs, horizon):
+    """
+    Plot the contributions of each stack in the NHITS model.
+
+    Parameters:
+        stack_outputs (list of torch.Tensor): List of outputs from each stack.
+        horizon (int): The forecast horizon.
+    """
+    num_stacks = len(stack_outputs)
+    fig, axes = plt.subplots(num_stacks, 1, figsize=(12, 3 * num_stacks), sharex=True)
+
+    if num_stacks == 1:  # Handle case with only one stack
+        axes = [axes]
+
+    for i, (ax, stack_output) in enumerate(zip(axes, stack_outputs)):
+        # Convert to NumPy for plotting and truncate to forecast horizon
+        stack_output_np = stack_output.detach().cpu().numpy()[:, :horizon].mean(axis=0)  # Average over batch
+        ax.plot(range(horizon), stack_output_np, label=f"Stack {i + 1}")
+        ax.set_title(f"Stack {i + 1} Contribution")
+        ax.set_xlabel("Time Steps")
+        ax.set_ylabel("Contribution")
+        ax.legend()
+        ax.grid()
+
+    plt.tight_layout()
     plt.show()

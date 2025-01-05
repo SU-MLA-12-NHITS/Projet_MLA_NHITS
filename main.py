@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Sat Jan  4 17:47:13 2025
-
-@author: lisadelplanque
-
 Main script to execute.
 """
 import torch
@@ -12,9 +6,9 @@ import pandas as pd
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
+# from torch.utils.data import DataLoader
 from src.model.NHITS_model import *
-from data.utils import create_rolling_windows, split_data
+from data.utils import plot_stack_outputs
 import src.training.config as config
 from src.training.training import train_model
 from src.evaluation import evaluate_model
@@ -68,6 +62,21 @@ def main():
             hidden_size=hidden_size,
             expressiveness_ratios=expressiveness_ratios
         )
+        # Sample input
+        x = torch.randn(batch_size, input_size)  # Batch size, input size
+        # Forward pass
+        final_output, stack_outputs = model(x)
+
+        # Access the final forecast
+        print("Final Output Shape:", final_output.shape)
+
+        # Access stack contributions
+        # for i, stack_output in enumerate(stack_outputs):
+        #    print(f"Stack {i+1} Output Shape:", stack_output.shape)
+
+        # Plot stack contributions
+        plot_stack_outputs(stack_outputs, horizon)
+
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=learning_rate_decay)
@@ -80,11 +89,11 @@ def main():
         train_model(model, train_loader, val_loader, training_steps=training_steps, criterion=criterion, optimizer=optimizer, scheduler=scheduler, device=device)
 
         # Evaluate the model
-        evaluate_model(model, test_loader, horizon, device)
+        mse, mae = evaluate_model(model, test_loader, horizon, device)
         
         # Store the results for MSE and MAE
-        mse_list.append(evaluate_model(model, test_loader, horizon, device)[0])
-        mae_list.append(evaluate_model(model, test_loader, horizon, device)[1])
+        mse_list.append(mse)
+        mae_list.append(mae)
 
     # Compute the average MSE and MAE across all columns
     avg_mse = np.mean(mse_list)

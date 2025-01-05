@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Jan  3 15:19:18 2025
-
-@author: lisadelplanque
-
 This code implements the NHITS model for time series forecasting.
 """
 
@@ -130,7 +124,8 @@ class NHITS(nn.Module):
             torch.Tensor: Final output tensor with shape (batch_size, output_size).
         """
         residual = x.clone()  # Initialize residuals with the input
-        outputs = []
+        # outputs = []
+        stack_outputs = []    # List to store outputs from each stack
 
         # Loop over each stack and each block within the stack
         for stack_idx, stack_blocks in enumerate(self.stacks):
@@ -139,13 +134,15 @@ class NHITS(nn.Module):
                 block_output = block(residual)
                 # Reduce residuals using expressiveness ratios
                 residual = residual - (block_output / self.expressiveness_ratios[stack_idx])
-                outputs.append(block_output)
+                # Accumulate block output into the stack's output
+                stack_outputs.append(block_output)
 
         # Combine outputs from all blocks
-        final_output = torch.stack(outputs, dim=0).sum(dim=0)
+        # final_output = torch.stack(outputs, dim=0).sum(dim=0)
+        final_output = torch.stack(stack_outputs, dim=0).sum(dim=0)
         
-        # Return the final output, ensuring the output size is correct
-        return final_output[:, :self.output_size]
+        # Return the final output, ensuring the output size is correct and the outputs of each stack
+        return final_output[:, :self.output_size], stack_outputs
 
 
 # --- Testing the Model ---
@@ -174,7 +171,7 @@ if __name__ == "__main__":
     # Generate dummy input data (batch_size=32)
     x = torch.randn(32, input_size)  # Batch of 32 time series samples
     # Perform a forward pass through the model
-    output = model(x)
+    output, _ = model(x)
 
     # Print output shape to verify correctness
     print(output.shape)  # Expected shape: (32, output_size)

@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Sat Jan  4 17:44:55 2025
-
-@author: lisadelplanque
-
 This code evaluates the NHITS model on a test set, calculates MSE and MAE for a specific horizon, and visualizes the true vs predicted values.
 
 """
@@ -31,7 +25,7 @@ def evaluate_model(model, test_loader, horizon, device):
             # Predict only for the specified horizon
             targets = targets[:, :horizon]
             
-            outputs = model(inputs)
+            outputs, _ = model(inputs)
             outputs = outputs[:, :horizon]
 
             # Compute errors for the specified horizon

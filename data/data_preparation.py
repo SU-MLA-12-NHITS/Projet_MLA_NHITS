@@ -1,11 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Sat Jan  4 17:56:57 2025
-
-@author: lisadelplanque
-
-
 This code prepares and processes time series data for training, validation, and testing by normalizing, creating rolling windows, 
 splitting the data, and converting it to PyTorch tensors for use with DataLoaders.
 """
