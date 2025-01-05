@@ -79,7 +79,7 @@ def main():
 
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=learning_rate_decay)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=training_steps // 3, gamma=learning_rate_decay)
 
         # Train the model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
