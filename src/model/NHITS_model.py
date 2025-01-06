@@ -20,7 +20,7 @@ class NHITSBlock(nn.Module):
         activation (nn.Module): Activation function used in the MLP layers.
         dropout_rate (float): Dropout rate to apply between MLP layers.
     """
-    def __init__(self, input_size, output_size, pooling_kernel_size, hidden_size, activation=nn.ReLU, dropout_rate=0.2):
+    def __init__(self, input_size, output_size, pooling_kernel_size, hidden_size, activation=nn.ReLU, dropout_rate=0.5):
         super(NHITSBlock, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -29,7 +29,6 @@ class NHITSBlock(nn.Module):
         # Pooling layer to reduce dimensionality
         self.pooling = nn.MaxPool1d(kernel_size=pooling_kernel_size, stride=1, padding=0)
         
-        
         # Adjusted input size after pooling
         pooled_size = input_size - pooling_kernel_size + 1
 
@@ -37,10 +36,10 @@ class NHITSBlock(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(pooled_size, hidden_size),  # First hidden layer
             activation(),                        # Activation function
-            #nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            nn.Dropout(dropout_rate),            # Dropout layer for regularization
             nn.Linear(hidden_size, hidden_size), # Second hidden layer
             activation(),                        # Activation function
-            #nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            nn.Dropout(dropout_rate),            # Dropout layer for regularization
             nn.Linear(hidden_size, output_size)  # Output layer
         )
 
