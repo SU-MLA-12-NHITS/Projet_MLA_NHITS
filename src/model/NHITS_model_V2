@@ -1,0 +1,128 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class NHITSBlock(nn.Module):
+    def __init__(self, input_size, forecast_horizon, hidden_size, pool_size, basis_type='identity', use_residual=True):
+        """
+        A single block in the NHITS architecture with improved flexibility and basis functions.
+
+        Args:
+            input_size (int): The size of the input sequence (L).
+            forecast_horizon (int): The forecast horizon (H).
+            hidden_size (int): Number of hidden units in the MLP.
+            pool_size (int): Kernel size for max pooling.
+            basis_type (str): Type of basis function to use ('identity', 'polynomial', 'fourier').
+            use_residual (bool): Whether to include residual connections between input and backcast.
+        """
+        super(NHITSBlock, self).__init__()
+        self.pool_size = pool_size
+        self.forecast_horizon = forecast_horizon
+        self.use_residual = use_residual
+        self.basis_type = basis_type
+
+        # Max pooling layer
+        self.pool = nn.MaxPool1d(kernel_size=pool_size, stride=1, padding=pool_size // 2)
+
+        # MLP for basis coefficients
+        self.mlp = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, forecast_horizon + input_size)  # Forecast + Backcast
+        )
+
+        # Basis function parameters (if applicable)
+        if basis_type == 'polynomial':
+            self.basis = nn.Parameter(torch.randn(forecast_horizon, hidden_size))
+        elif basis_type == 'fourier':
+            self.basis = nn.Parameter(torch.randn(forecast_horizon, 2))  # [sin, cos]
+
+    def forward(self, x):
+        """
+        Forward pass for a single NHITS block.
+
+        Args:
+            x (Tensor): Input tensor of shape (batch_size, input_size).
+
+        Returns:
+            backcast (Tensor): Residual input for the next block.
+            forecast (Tensor): Forecast for the current block.
+        """
+        # Apply max pooling
+        x_pooled = self.pool(x.unsqueeze(1)).squeeze(1)
+
+        # Predict basis coefficients using the MLP
+        basis_outputs = self.mlp(x_pooled)
+
+        # Split backcast and forecast outputs
+        backcast = basis_outputs[:, :x.size(1)]  # Residual part
+        forecast = basis_outputs[:, x.size(1):]  # Forecast for the horizon
+
+        # Apply basis functions to forecast
+        if self.basis_type == 'polynomial':
+            forecast = torch.matmul(forecast, self.basis.T)
+        elif self.basis_type == 'fourier':
+            t = torch.arange(0, self.forecast_horizon).float().to(x.device)
+            forecast = forecast * torch.cat(
+                [torch.sin(2 * torch.pi * t / self.forecast_horizon), torch.cos(2 * torch.pi * t / self.forecast_horizon)],
+                dim=-1
+            )
+
+        # Add residual connection if enabled
+        if self.use_residual:
+            backcast = backcast + x
+
+        return backcast, forecast
+
+class NHITS(nn.Module):
+    def __init__(self, input_size, forecast_horizon, hidden_size, num_stacks, num_blocks_per_stack, pool_size, basis_type='identity', use_residual=True):
+        """
+        Implements the full NHITS model with multiple stacks of NHITS blocks.
+
+        Args:
+            input_size (int): The size of the input sequence (L).
+            forecast_horizon (int): The forecast horizon (H).
+            hidden_size (int): Number of hidden units in the MLP.
+            num_stacks (int): Number of stacks (S).
+            num_blocks_per_stack (int): Number of blocks per stack (B).
+            pool_size (int): Kernel size for max pooling.
+            basis_type (str): Type of basis function to use ('identity', 'polynomial', 'fourier').
+            use_residual (bool): Whether to include residual connections in the blocks.
+        """
+        super(NHITS, self).__init__()
+        self.stacks = nn.ModuleList()
+        
+        for stack_idx in range(num_stacks):
+            stack = nn.ModuleList()
+            for block_idx in range(num_blocks_per_stack):
+                stack.append(NHITSBlock(
+                    input_size=input_size,
+                    forecast_horizon=forecast_horizon,
+                    hidden_size=hidden_size,
+                    pool_size=pool_size,
+                    basis_type=basis_type,
+                    use_residual=use_residual
+                ))
+            self.stacks.append(stack)
+
+    def forward(self, x):
+        """
+        Forward pass for the NHITS model.
+
+        Args:
+            x (Tensor): Input tensor of shape (batch_size, input_size).
+
+        Returns:
+            final_forecast (Tensor): Aggregated forecast for the entire model.
+        """
+        final_forecast = torch.zeros(x.size(0), self.stacks[0][0].forecast_horizon).to(x.device)
+        
+        for stack in self.stacks:
+            backcast = x  # Initialize the backcast as the input
+            for block in stack:
+                backcast, forecast = block(backcast)
+                final_forecast += forecast  # Aggregate the forecasts from all blocks
+
+        return final_forecast

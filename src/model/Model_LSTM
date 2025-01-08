@@ -1,0 +1,65 @@
+import torch.nn as nn
+import torch.nn.functional as F
+
+class NHITSBlock(nn.Module):
+    def __init__(self, input_steps, input_size, output_size, hidden_size):
+        super(NHITSBlock, self).__init__()
+        self.input_steps = input_steps
+        self.input_size = input_size
+        self.output_size = output_size
+
+        # Adding a recurrent layer
+        self.rnn = nn.LSTM(input_size, hidden_size, batch_first=True)
+
+        # Fully connected layers
+        self.fc1 = nn.Linear(hidden_size * input_steps, hidden_size)  # Flattened output from LSTM
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc_out = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        # Pass through LSTM to capture temporal dependencies
+        x, _ = self.rnn(x)  # Output shape: (batch_size, input_steps, hidden_size)
+
+        # Flatten the output: (batch_size, input_steps, hidden_size) -> (batch_size, input_steps * hidden_size)
+        x = x.contiguous().view(x.size(0), -1)  # Flatten
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        output = self.fc_out(x)
+        return output
+
+class NHITS(nn.Module):
+    def __init__(self, input_steps, input_size, output_size, hidden_size, num_stacks):
+        super(NHITS, self).__init__()
+        self.num_stacks = num_stacks
+        self.input_steps = input_steps
+        self.input_size = input_size
+        self.output_size = output_size
+
+        # Create multiple NHITS blocks
+        self.blocks = nn.ModuleList([
+            NHITSBlock(input_steps, input_size, output_size, hidden_size) for _ in range(num_stacks)
+        ])
+
+        # Projection layer to map residuals back to input_size
+        self.projection = nn.Linear(output_size, input_size)
+
+    def forward(self, x):
+        # Initialize residual as input
+        residual = x
+        forecasts = []
+
+        for block in self.blocks:
+            # Predict using the block
+            forecast = block(residual)
+            forecasts.append(forecast)
+
+            # Update residual and project it back to input size
+            residual_update = self.projection(forecast)
+
+            # Expand the residual_update to match the shape of residual (broadcasting)
+            residual_update_expanded = residual_update.unsqueeze(1).expand_as(residual)
+            residual = residual + residual_update_expanded  # Adding residual update to the residual
+
+        # Combine all forecasts
+        final_forecast = sum(forecasts)
+        return final_forecast
