@@ -4,9 +4,8 @@ Advanced Machine Learning Project
 This repository implements N-HiTS, the algorithm introduced in the following paper:
 
 "N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting", by C. Challu, K. Olivares, B. Oreshkin, F. Garza, M. Mergenthaler-Canseco, A. Dubrawski (https://arxiv.org/abs/2201.12886v5).
-# NHITS Time Series Forecasting Project
 
-This repository contains the implementation of the NHITS model for time series forecasting, along with data preparation, training scripts, and exploratory analysis notebooks.
+This repository contains the implementation of the N-HITS model for time series forecasting, along with data preparation, training scripts, and exploratory analysis notebooks.
 
 ## Table of Contents
 
@@ -33,14 +32,14 @@ This repository contains the implementation of the NHITS model for time series f
 │   └── training/
 │       ├── config.py            # Configuration and hyperparameters
 │       ├── training.py          # Training loop
-│       └── evaluation.py        # Evaluation logic
+│   └── evaluation.py            # Evaluation logic
 ├── main.py                      # Main script to run
 ├── demo_model.ipynb             # Demonstrates the NHITS model in action
 ```
 
 ## Key Features
 
-- **NHITS Model**: Implements a neural network for time series forecasting.
+- **N-HITS Model**: Implements a neural network for time series forecasting.
 - **Exploratory Analysis**: Jupyter notebooks for analyzing multiple datasets (e.g., ETTm2, weather, traffic).
 - **Data Preparation**: Tools for preprocessing datasets, normalizing, and creating rolling windows.
 - **Custom Configurations**: Customizable hyperparameters and dataset paths in `config.py`.
@@ -60,10 +59,12 @@ To create and activate the Conda environment, follow these steps:
     conda activate nhits
 
 ### Prerequisites
-- Python 3.9+
-- PyTorch
-- pandas
-- matplotlib
+- Python >= 3.12.4
+- numpy >= 1.26.4
+- matplotlib >= 3.8.4
+- PyTorch >= 2.3.0
+- pandas >= 2.2.2
+- scikit-learn >= 1.4.2
 
 ### Dataset Download
 Datasets for this project can be downloaded from [Google Drive](https://drive.google.com/file/d/1alE33S1GmP5wACMXaLu50rDIoVzBM4ik/view). Once downloaded, place the datasets in the `data/` folder.
@@ -78,12 +79,12 @@ All model and training hyperparameters are stored in `src/training/config.py`.
 Adjust hyperparameters and path to dataset in this file.
 
 ### Training
-Run the `main.py` script to preprocess the data, train the NHITS model and evaluate its performance:
+Run the `main.py` script to preprocess the data, train the N-HITS model and evaluate its performance:
 ```bash
 python main.py
 ```
 
 ### Demo
-Explore the NHITS model's in `demo_model.ipynb`.
+Explore the N-HITS model in `demo_model.ipynb`.
 
 
