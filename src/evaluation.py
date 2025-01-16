@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+
 def evaluate_model(model, test_loader, horizon, device):
     """
     Evaluate the model on the test set and calculate MSE and MAE for a specific horizon.
@@ -24,32 +25,21 @@ def evaluate_model(model, test_loader, horizon, device):
             
             # Predict only for the specified horizon
             targets = targets[:, :horizon]
-            
             outputs, _ = model(inputs)
             outputs = outputs[:, :horizon]
 
-            # Compute errors for the specified horizon
-            total_mse += F.mse_loss(outputs, targets, reduction='sum').item()
-            total_mae += F.l1_loss(outputs, targets, reduction='sum').item()
+            # Ensure both are in normalized scale (avoid denormalization during loss calc)
+            total_mse += F.mse_loss(outputs, targets, reduction='mean').item()
+            total_mae += F.l1_loss(outputs, targets, reduction='mean').item()
 
-            # Store true and predicted values for plotting
+            # Store true and predicted values for debugging/visualization
             y_true.extend(targets.cpu().numpy())
             y_pred.extend(outputs.cpu().numpy())
 
-    # Compute average errors for the horizon
-    mse_avg = total_mse / len(test_loader.dataset)
-    mae_avg = total_mae / len(test_loader.dataset)
+    # Compute average MSE and MAE
+    mse_avg = total_mse / len(test_loader)
+    mae_avg = total_mae / len(test_loader)
 
     print(f"Horizon: {horizon} | Average MSE: {mse_avg:.4f} | Average MAE: {mae_avg:.4f}")
 
-    # Plot true vs predicted values for the horizon
-    plt.figure(figsize=(10, 6))
-    plt.plot(y_true, label="True values", color='blue')
-    plt.plot(y_pred, label="Predicted values", color='red')
-    plt.title(f"Comparison of true vs predicted values for horizon {horizon}")
-    plt.xlabel("Index")
-    plt.ylabel("Value")
-    plt.show()
-
-    # Return the MSE and MAE averages so they can be used later
     return mse_avg, mae_avg
