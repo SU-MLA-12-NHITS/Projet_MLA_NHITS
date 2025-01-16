@@ -71,9 +71,7 @@ Datasets for this project can be downloaded from [Google Drive](https://drive.go
 ```plaintexts
 ├── data/
 │   ├── all_six_dataset/
-│   │   ├── electricity
 │   │   │   └──electricity.csv
-│   │   ├── ETT-small
 ```
 
 
