@@ -13,6 +13,7 @@ import src.training.config as config
 from src.training.training import train_model
 from src.evaluation import evaluate_model
 from data.data_preparation import *
+import time
 
 # --- Main Function ---
 def main():
@@ -29,6 +30,8 @@ def main():
     
     mse_list = []
     mae_list = []
+
+    computation_time = []
 
     for column_name in dataset.columns:
         print(f"Processing column: {column_name}")
@@ -70,12 +73,12 @@ def main():
         # Access the final forecast
         print("Final Output Shape:", final_output.shape)
 
-        # Access stack contributions
+        ## Access stack contributions
         # for i, stack_output in enumerate(stack_outputs):
         #    print(f"Stack {i+1} Output Shape:", stack_output.shape)
 
-        # Plot stack contributions
-        plot_stack_outputs(stack_outputs, horizon)
+        ## Plot stack contributions
+        # plot_stack_outputs(stack_outputs, horizon)
 
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -85,8 +88,14 @@ def main():
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         torch.autograd.set_detect_anomaly(True)  # Enable anomaly detection for debugging
 
+        # Measure training time
+        train_start_time = time.time()
         # Train the model
         train_model(model, train_loader, val_loader, training_steps=training_steps, criterion=criterion, optimizer=optimizer, scheduler=scheduler, device=device)
+        train_end_time = time.time()
+        training_time = train_end_time - train_start_time  # Time taken for training
+        print(f"Training Time for Horizon {horizon}: {training_time:.4f} seconds")
+        computation_time.append(training_time)
 
         # Evaluate the model
         mse, mae = evaluate_model(model, test_loader, horizon, device)
@@ -101,6 +110,10 @@ def main():
 
     print(f"Average MSE across all columns: {avg_mse}")
     print(f"Average MAE across all columns: {avg_mae}")
+
+    # Compute the average computation time
+    avg_computation_time = np.mean(computation_time)
+    print(f"Average computation time across all columns: {avg_computation_time}")
 
 # Entry point
 if __name__ == "__main__":
