@@ -17,9 +17,12 @@ def train_model(model, train_loader, val_loader, training_steps, criterion, opti
         raise ValueError("The validation DataLoader is empty!")
         
     step = 0
+
     while step < training_steps:
+        # Training loop
         model.train()
         train_loss = 0
+
         for inputs, targets in train_loader:
             if step >= training_steps:
                 break
@@ -43,8 +46,14 @@ def train_model(model, train_loader, val_loader, training_steps, criterion, opti
                 loss = criterion(outputs, targets)
                 val_loss += loss.item()
 
-        print(f"Step {step}/{training_steps}, Train Loss: {train_loss / len(train_loader):.4f}, "
-              f"Validation Loss: {val_loss / len(val_loader):.4f}")
+        # Average the losses
+        avg_train_loss = train_loss / len(train_loader)
+        avg_val_loss = val_loss / len(val_loader)
+        
+         # Log the losses and learning rate
+        print(f"Step {step}/{training_steps}, Train Loss: {avg_train_loss:.4f}, "
+              f"Validation Loss: {avg_val_loss:.4f}, "
+              f"Learning Rate: {scheduler.get_last_lr()[0]:.6f}")
         
         # Step the scheduler to decay the learning rate
         scheduler.step()
