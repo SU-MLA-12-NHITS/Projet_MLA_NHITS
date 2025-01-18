@@ -36,10 +36,10 @@ class NHITSBlock(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(pooled_size, hidden_size),  # First hidden layer
             activation(),                        # Activation function
-            nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            # nn.Dropout(dropout_rate),            # Dropout layer for regularization
             nn.Linear(hidden_size, hidden_size), # Second hidden layer
             activation(),                        # Activation function
-            nn.Dropout(dropout_rate),            # Dropout layer for regularization
+            # nn.Dropout(dropout_rate),            # Dropout layer for regularization
             nn.Linear(hidden_size, output_size)  # Output layer
         )
 
@@ -155,31 +155,31 @@ class NHITS(nn.Module):
 
 # --- Testing the Model ---
 
-if __name__ == "__main__":
-    # Hyperparameters for testing
-    input_size = 128
-    output_size = 24
-    stacks = 3
-    blocks_per_stack = 2
-    pooling_kernel_sizes = [2, 4, 8]
-    hidden_size = 512
-    expressiveness_ratios = [168, 24, 1]
+# if __name__ == "__main__":
+#     # Hyperparameters for testing
+#     input_size = 128
+#     output_size = 24
+#     stacks = 3
+#     blocks_per_stack = 2
+#     pooling_kernel_sizes = [2, 4, 8]
+#     hidden_size = 512
+#     expressiveness_ratios = [168, 24, 1]
 
-    # Instantiate the NHITS model with the specified hyperparameters
-    model = NHITS(
-        input_size=input_size,
-        output_size=output_size,
-        stacks=stacks,
-        blocks_per_stack=blocks_per_stack,
-        pooling_kernel_sizes=pooling_kernel_sizes,
-        hidden_size=hidden_size,
-        expressiveness_ratios=expressiveness_ratios
-    )
+#     # Instantiate the NHITS model with the specified hyperparameters
+#     model = NHITS(
+#         input_size=input_size,
+#         output_size=output_size,
+#         stacks=stacks,
+#         blocks_per_stack=blocks_per_stack,
+#         pooling_kernel_sizes=pooling_kernel_sizes,
+#         hidden_size=hidden_size,
+#         expressiveness_ratios=expressiveness_ratios
+#     )
 
-    # Generate dummy input data (batch_size=32)
-    x = torch.randn(32, input_size)  # Batch of 32 time series samples
-    # Perform a forward pass through the model
-    output, _ = model(x)
+#     # Generate dummy input data (batch_size=32)
+#     x = torch.randn(32, input_size)  # Batch of 32 time series samples
+#     # Perform a forward pass through the model
+#     output, _ = model(x)
 
-    # Print output shape to verify correctness
-    print(output.shape)  # Expected shape: (32, output_size)
+#     # Print output shape to verify correctness
+#     print(output.shape)  # Expected shape: (32, output_size)
